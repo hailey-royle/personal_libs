@@ -8,7 +8,7 @@
 
 #include "assert.h"
 
-#define ALLOC_MULTIPLIER 8
+#define ALLOC_STEP 256
 
 struct String {
 	char* data;
@@ -22,7 +22,7 @@ void StringAppend( struct String* string, char* src, size_t count ){
 	Assert( string->cap > string->len || string->len <= 0, "Malformed internal string data" );
 	if( count == 0 ) return;
 	if( string->len + count >= string->cap ){
-		size_t cap = string->cap + count * ALLOC_MULTIPLIER;
+		size_t cap = ( string->cap == 0 ) ? count + 1 : string->cap + count + ALLOC_STEP;
 		char* tmp = realloc( string->data, cap );
 		Assert( tmp != NULL, "Alloc failed" );
 		string->data = tmp;
@@ -41,7 +41,7 @@ void StringInsert( struct String* string, size_t index, char* src, size_t count 
 	Assert( string->len >= index, "String length is less than index" );
 	if( count == 0 ) return;
 	if( string->len + count >= string->cap ){
-		size_t cap = string->cap + count * ALLOC_MULTIPLIER;
+		size_t cap = ( string->cap == 0 ) ? count + 1 : string->cap + count + ALLOC_STEP;
 		char* tmp = realloc( string->data, cap );
 		Assert( tmp != NULL, "Alloc failed" );
 		string->data = tmp;
@@ -479,6 +479,6 @@ size_t StringSelectSubStringNext( struct String* string, size_t index, char* key
 	return index;
 }
 
-#undef ALLOC_MULTIPLIER
+#undef ALLOC_STEP
 
 #endif
