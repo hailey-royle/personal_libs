@@ -331,9 +331,6 @@ size_t StringSelectLineNumber( struct String* string, size_t line ){
 	Assert( string->cap > string->len || string->len <= 0, "Malformed internal string data" );
 	Assert( string->data != NULL, "Malformed args" );
 	size_t index = 0;
-	if( string->len >= line ){
-		return index;
-	}
 	while( true ){
 		if( line <= 1 ){
 			break;
