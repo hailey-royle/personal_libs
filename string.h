@@ -477,6 +477,4 @@ size_t StringSelectSubStringNext( struct String* string, size_t index, char* key
 	return index;
 }
 
-#undef ALLOC_STEP
-
 #endif
