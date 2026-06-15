@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
+#include <stdbool.h>
 #include <sys/stat.h>
 
 #include "assert.h"
@@ -95,6 +95,17 @@ void StringFree( struct String* string ){
 	string->len = 0;
 }
 
+// for some reason when compiling with -std=* these standard library things dont get included.
+// taken from musl c library at musl/include/sys/stat
+
+#ifndef S_IFMT
+#define S_IFMT 0170000
+#endif
+
+#ifndef S_IFREG
+#define S_IFREG 0100000
+#endif
+
 void StringFromFile( struct String* string, char* filename ){
 	Assert( string != NULL, "Malformed args" );
 	Assert( string->cap == 0 && string->len == 0 && string->data == NULL, "String must be empty" );
@@ -140,6 +151,55 @@ void StringToFile( struct String* string, char* filename ){
 	fclose( file );
 }
 
+size_t StringUTF8Prev( struct String* string, size_t index ){
+	Assert( string != NULL, "Malformed args" );
+	Assert( string->cap > string->len || string->len <= 0, "Malformed internal string data" );
+	Assert( string->len >= index, "Malformed args" );
+	Assert( string->data != NULL, "Malformed args" );
+	if( index == 0 ){
+		Unreachable();
+	}
+	index--;
+	if(( string->data[ index ] & 0x80 ) == 0 ){
+		return index;
+	}
+	index--;
+	if(( string->data[ index ] & 0x40 ) != 0 ){
+		return index;
+	}
+	index--;
+	if(( string->data[ index ] & 0x40 ) != 0 ){
+		return index;
+	}
+	index--;
+	if(( string->data[ index ] & 0x40 ) != 0 ){
+		return index;
+	}
+	Unreachable();
+	return index;
+}
+
+size_t StringUTF8Next( struct String* string, size_t index ){
+	Assert( string != NULL, "Malformed args" );
+	Assert( string->cap > string->len || string->len <= 0, "Malformed internal string data" );
+	Assert( string->len >= index, "Malformed args" );
+	Assert( string->data != NULL, "Malformed args" );
+	if(( string->data[ index ] & 0x80 ) == 0 ){
+		return index + 1;
+	}
+	if((( string->data[ index ] << 2 ) & 0x80 ) == 0 ){
+		return index + 2;
+	}
+	if((( string->data[ index ] << 3 ) & 0x80 ) == 0 ){
+		return index + 3;
+	}
+	if((( string->data[ index ] << 4 ) & 0x80 ) == 0 ){
+		return index + 4;
+	}
+	Unreachable();
+	return index;
+}
+
 size_t StringSelectCharPrev( struct String* string, size_t index ){
 	Assert( string != NULL, "Malformed args" );
 	Assert( string->cap > string->len || string->len <= 0, "Malformed internal string data" );
@@ -148,7 +208,7 @@ size_t StringSelectCharPrev( struct String* string, size_t index ){
 	if( index <= 0 ) {
 		return 0;
 	}
-	return index - 1;
+	return StringUTF8Prev( string, index );
 }
 
 size_t StringSelectCharNext( struct String* string, size_t index ){
@@ -159,7 +219,7 @@ size_t StringSelectCharNext( struct String* string, size_t index ){
 	if( index >= string->len - 1 ){
 		return index;
 	}
-	return index + 1;
+	return StringUTF8Next( string, index );
 }
 
 size_t StringSelectWordPrev( struct String* string, size_t index ){
